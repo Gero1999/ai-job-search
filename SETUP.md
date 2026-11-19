@@ -4,9 +4,14 @@ Step-by-step instructions for getting the AI Job Search framework running.
 
 ## 1. Prerequisites
 
-### Claude Code
+### Workspace agent
 
-Install Claude Code (Anthropic's CLI for Claude):
+Open this repository in Codex or another agent with access to your files.
+Codex discovers the project skills in `.agents/skills/`. Other hosts can use
+the [workflow index](AGENTS.md) directly. See the [runtime guide](AGENT-RUNTIMES.md)
+for shell, web, PDF, and connector capabilities.
+
+If you prefer Claude Code, install its CLI and use the native slash commands:
 
 ```bash
 npm install -g @anthropic-ai/claude-code
@@ -208,7 +213,8 @@ If your job board has no portal yet, generate one with `/add-portal` — it scaf
 
 ## 4. Run the setup interview
 
-Start Claude Code in the repository:
+In Codex, run `$setup`. In another agent, ask it to read [AGENTS.md](AGENTS.md)
+and run the `setup` workflow. In Claude Code, start the CLI in the repository:
 
 ```bash
 claude
@@ -220,10 +226,10 @@ Then run the onboarding:
 /setup
 ```
 
-Claude will offer three paths:
+Your agent will offer three paths:
 
-- **Path A (documents folder):** Add your CV, LinkedIn export, diplomas, references, or past applications under `documents/`. Claude reads and cross-references them before proposing profile updates. This is best when you have several source files.
-- **Path B (single CV import):** Share one CV/resume by mentioning the file with `@` or pasting the text. Claude extracts it and asks follow-up questions for anything missing.
+- **Path A (documents folder):** Add your CV, LinkedIn export, diplomas, references, or past applications under `documents/`. The agent reads and cross-references them before proposing profile updates. This is best when you have several source files.
+- **Path B (single CV import):** Share one CV/resume by mentioning the file with `@` or pasting the text. The agent extracts it and asks follow-up questions for anything missing.
 - **Path C (interview mode):** Answer structured interview questions section by section.
 
 All three paths produce the same result: fully populated profile files.
@@ -280,11 +286,13 @@ Or paste the job description directly:
 /apply [paste job posting text here]
 ```
 
-Claude will:
+In Codex, use `$apply` with the same input. In other agents, select the `apply`
+workflow from [AGENTS.md](AGENTS.md). Your agent will:
+
 1. Evaluate the fit against your profile
 2. Ask if you want to proceed
 3. Draft a tailored CV and cover letter
-4. Have a reviewer agent critique the drafts
+4. Critique the drafts in a separate review pass
 5. Revise and present the final output
 
 ## 7. Compile your documents

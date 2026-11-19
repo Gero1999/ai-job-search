@@ -16,6 +16,12 @@ This is an agentic workflow: an LLM with file access reads untrusted web content
 
 ### Permission level
 
+The grants below apply to Claude Code. Other hosts apply their own sandbox and
+approval rules. The portable skills carry no tool grants. A host that stages
+fetching, scoring, or review in a single session has procedural separation
+only. See the [runtime guide](AGENT-RUNTIMES.md) for how each stage handles
+untrusted input.
+
 Every grant the template ships, where it lives, how long it lasts, and what checks it. "Guard" is `tools/security_guards.py`, which CI runs on every PR and which fails on any entry it does not know.
 
 | Surface | What is granted | Lifetime | Guard |

@@ -37,7 +37,7 @@ Then welcome the user with a single message that lists three paths. The wording 
 
 > **Welcome to the AI Job Search setup!**
 >
-> I'll help you build your professional profile so Claude can evaluate job postings, tailor CVs, write cover letters, and prepare you for interviews.
+> I'll help you build your professional profile so your agent can evaluate job postings, tailor CVs, write cover letters, and prepare you for interviews.
 >
 > I see files in your `documents/` folder: [list per subfolder, e.g. "2 in cv/, 1 in linkedin/, 3 in references/"]. Three ways to start:
 >
@@ -53,7 +53,7 @@ Then welcome the user with a single message that lists three paths. The wording 
 
 > **Welcome to the AI Job Search setup!**
 >
-> I'll help you build your professional profile so Claude can evaluate job postings, tailor CVs, write cover letters, and prepare you for interviews.
+> I'll help you build your professional profile so your agent can evaluate job postings, tailor CVs, write cover letters, and prepare you for interviews.
 >
 > Three ways to start:
 >
@@ -345,7 +345,7 @@ Ask about:
 
   > Copy https://github.com/ai-job-search-dev/community-portals/tree/main/portals/dk/jobindex-search into `.agents/skills/` and show me its code and what it does. Once I confirm, run `python3 tools/install_portal_clis.py` (Windows: `python tools\install_portal_clis.py`).
 
-  Print the prompt; do not copy the portal yourself - the user reads a portal's code before it runs against their career data. Once copied, the portal skill's own `allowed-tools` pre-approves its CLI only while that skill runs; `/scrape`, `/apply` and `/rank` run it outside the skill, so they prompt unless the user adds its grant (see `/add-portal`'s pre-approval step). If a board the user needs has no portal yet, guide them to `/add-portal` and to contribute the result to community-portals. WebSearch/`site:` queries remain the fallback for boards without a portal skill.
+  Print the prompt; do not copy the portal yourself - the user reads a portal's code before it runs against their career data. Once copied, in Claude Code the portal skill's own `allowed-tools` pre-approves its CLI only while that skill runs; `/scrape`, `/apply` and `/rank` run it outside the skill, so they prompt unless the user adds its grant (see `/add-portal`'s pre-approval step). In other hosts, use their own approval flow. If a board the user needs has no portal yet, guide them to `/add-portal` and to contribute the result to community-portals. WebSearch/`site:` queries remain the fallback for boards without a portal skill.
 - **CV language:** "Should your CVs be written in English (the default, accepted in most markets), or in your market's language?" Record the answer as a `CV language: <language>` line in CLAUDE.md's Identity section. Cover letters always match each posting's language automatically; this setting governs the CV only. If the user is unsure, keep English and note they can re-run `/setup --section search` to change it.
 
 **Important:** Also suggest role types the user may not have considered, based on their skill profile. For example:

@@ -20,13 +20,14 @@ This rule is the input side of the Step 3 Factual Grounding Audit, not a competi
 
 ## Step 0: Parse Input
 
-- If `$ARGUMENTS` looks like a URL, **dispatch the `posting-fetcher` agent** via the Agent tool (`subagent_type: posting-fetcher`, the shipped definition in `.claude/agents/posting-fetcher.md`: it can read and fetch but not edit or write, so the component that touches the raw web page has no way to act on it). Pass it the URL only - no profile data, no pasted posting text. It discovers installed portals itself, follows the escalation order below, runs `tools/posting_guard.py` on whatever it retrieved, and returns the gate's verdict, its findings, the extracted metadata and the **cleaned posting text**. The escalation order it applies, from `.claude/skills/job-application-assistant/09-web-research.md`:
-  - **Portal CLI first:** If the URL's host matches an installed portal skill in `.agents/skills/` (derived from the board hosts in `.agents/skills/*/cli/src` and `url-reference.md`, e.g. `linkedin.com` -> `linkedin-search`), run that CLI's `detail` command first:
+- If `$ARGUMENTS` looks like a URL, in Claude Code **dispatch the `posting-fetcher` agent** via the Agent tool (`subagent_type: posting-fetcher`, the shipped definition in `.claude/agents/posting-fetcher.md`: it can read and fetch but not edit or write, so the component that touches the raw web page has no way to act on it). Pass it the URL only - no profile data, no pasted posting text. It discovers installed portal CLIs itself, follows the escalation order below, runs `tools/posting_guard.py` on whatever it retrieved, and returns the gate's verdict, its findings, the extracted metadata and the **cleaned posting text**. The escalation order it applies, from `.claude/skills/job-application-assistant/09-web-research.md`:
+  - **Portal CLI first:** If the URL's host matches an installed portal skill in `.agents/skills/` (consider only folders with both `SKILL.md` and `cli/package.json`; derive hosts from their CLI source and `url-reference.md`, e.g. `linkedin.com` -> `linkedin-search`), run that CLI's `detail` command first:
     ```bash
     bun run .agents/skills/<portal-skill>/cli/src/cli.ts detail "$ARGUMENTS" --format plain
     ```
     (or `--format json` if structured metadata like deadline, contact, or apply URL is needed alongside the description). This avoids bot-detection 403s and login walls on aggregator boards.
   - **WebFetch fallback:** If the URL is not from an installed portal, or if the portal CLI is missing or errors, fetch with `WebFetch`.
+- **Other hosts:** If the Claude fetcher is unavailable, use the same [fetcher role](../agents/posting-fetcher.md) with the host's scoped worker or follow the fetch-and-gate pass in the [runtime guide](../../AGENT-RUNTIMES.md#run-role-based-workflows-without-claudes-agent-tool). Keep the same retrieval order and return contract.
 - **If the fetch returns HTTP 403, or the content is a login wall or an unrelated listing page, do not give up and do not draft from the title.** Follow the remaining escalation order in `09-web-research.md`: retry with browser headers via `python3 tools/fetch_page.py` (it checks `robots.txt` itself), then search for the employer's own careers posting. Most corporate and bank sites reject WebFetch's user agent while serving the page normally to a browser.
 - **Prefer the employer's own careers posting over an aggregator listing** (LinkedIn, Indeed, or your market's equivalent). Aggregators routinely drop the requisition ID and the grade or seniority level, and the grade is often the single most decision-relevant fact in the posting. Surface any material discrepancy between the two versions to the user.
 - If it is pasted text, write it unchanged to `${SCRATCHPAD:?set this to the session scratchpad directory from your system prompt}/posting.txt` and run `python3 tools/posting_guard.py --in "${SCRATCHPAD:?}/posting.txt" --text --json` yourself; use the cleaned text it prints and keep its verdict and findings for Step 1. Pasting by hand does not make a posting trusted.
@@ -123,7 +124,7 @@ Also read the most recent existing CV and cover letter files for concrete struct
 - Tailor the opening paragraph to the specific role and company
 - Address to a named person if available in the posting, otherwise "Dear Hiring Manager" (or equivalent in posting language)
 - Keep to approximately one page
-- Any mention of agentic coding or AI tooling must reference **Claude Code** by name
+- When mentioning AI tooling, name the tool the candidate actually used if their profile supports it. Use **Claude Code** by name for documented Claude Code experience. The current drafting agent is not evidence of candidate experience.
 
 Write both files to disk. Keep the exact text of both drafts in working memory — you will pass them inline to the reviewer in Step 3 and revise them in Step 4 without re-reading.
 
@@ -131,7 +132,9 @@ Write both files to disk. Keep the exact text of both drafts in working memory �
 
 ## Step 3: REVIEWER - Research & Critique
 
-Use the **Agent tool** to spawn the reviewer as **`application-reviewer`** (`subagent_type: application-reviewer`, the shipped definition in `.claude/agents/application-reviewer.md`: it can read, search and fetch but not edit or write, so every edit and the company research come back as text for you to apply). The reviewer gets a fresh context, so pass the drafts **inline in the prompt** below (do not make the reviewer Read them). Scope the reviewer's file reads to content-critique essentials only — the reviewer does not need the template structure files (`05`, `06`) to critique content, since those govern structural/toolchain concerns the drafter already applied.
+In Claude Code, use the **Agent tool** to spawn the reviewer as **`application-reviewer`** (`subagent_type: application-reviewer`, the shipped definition in `.claude/agents/application-reviewer.md`: it can read, search and fetch but not edit or write, so every edit and the company research come back as text for you to apply). The reviewer gets a fresh context, so pass the drafts **inline in the prompt** below (do not make the reviewer Read them). Scope the reviewer's file reads to content-critique essentials only — the reviewer does not need the template structure files (`05`, `06`) to critique content, since those govern structural/toolchain concerns the drafter already applied.
+
+On a host without the Claude Agent tool, follow the [runtime guide's review procedure](../../AGENT-RUNTIMES.md#run-role-based-workflows-without-claudes-agent-tool) with the same reviewer role, inputs and checklist below.
 
 Replace `<COMPANY>`, `<ROLE>`, `<INSERT_JOB_POSTING_TEXT_HERE>`, `<INSERT_CV_DRAFT_HERE>`, and `<INSERT_COVER_LETTER_DRAFT_HERE>` with actual values before dispatching.
 
@@ -274,7 +277,7 @@ If Poppler is missing, or no `pdftotext` on PATH supports `-bbox` (Git for Windo
 
 The thresholds are calibrated for the stock moderncv and `cover.cls` geometry; a template registered via `/add-template` may report a phantom hole above a footer the 90pt band does not cover.
 
-Then read both PDFs via the Read tool and verify:
+Then inspect both PDFs via the Read tool, or use the host's local PDF or image tools per the [runtime guide](../../AGENT-RUNTIMES.md#translate-capabilities). Verify:
 
 **CV (`cv/main_<company>_<role>.pdf`):**
 - [ ] Exactly 2 pages (not 1, not 3)

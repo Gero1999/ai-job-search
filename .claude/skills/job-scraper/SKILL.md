@@ -65,9 +65,9 @@ If this fails (bun not installed), skip to **1c (WebSearch fallback)** for all p
 
 #### 1b. Run CLI tools (primary — run these in parallel where possible)
 
-Discover all installed portal CLI skills by reading every `SKILL.md` found under `.agents/skills/*/SKILL.md`. Each file documents that portal's exact CLI flags and usage examples. **Use each portal's own documented interface — do not guess flags.** This approach automatically includes any new portals added via `/add-portal` without requiring changes to this file.
+Discover all installed portal CLI skills by reading `.agents/skills/*/SKILL.md` only in folders with a `cli/package.json`. The other project skills are workflow entry points. Each file documents that portal's exact CLI flags and usage examples. **Use each portal's own documented interface — do not guess flags.** This approach automatically includes any new portals added via `/add-portal` without requiring changes to this file.
 
-**No portal installed.** If no `.agents/skills/*/SKILL.md` exists (or the directory itself is missing), that is not an error: skip the rest of 1b, run every query through **1c** for the whole run, and print the `no portals installed:` line in Step 5.
+**No portal installed.** If no folder has both `SKILL.md` and `cli/package.json` (or the skills directory itself is missing), that is not an error: skip the rest of 1b, run every query through **1c** for the whole run, and print the `no portals installed:` line in Step 5.
 
 **Honor the `enabled` toggle.** A portal is enabled unless its `SKILL.md` frontmatter sets `enabled: false` (a missing key means enabled — the default). Skip each disabled portal and record it for the Step 5 summary. A fork can thus keep a portal installed but sit out a run without deleting its directory.
 
@@ -79,7 +79,7 @@ For each **enabled** portal skill:
 4. Cap results to ~20 per call using the portal's limit flag.
 5. Use `--format json` for machine-readable output.
 
-Run all portal CLI calls in parallel where possible using the Agent tool. Collect all `results` arrays — across terms as well as portals — into a single pool for Step 2, keeping each result tagged with its source portal skill (for Step 2 `detail` lookups). A posting that several terms return appears once per term, and Step 2 only skips URLs already in `job_scraper/seen_jobs.json`, so deduplicate the pool by URL before Step 2.
+Run all portal CLI calls in parallel where possible using the Agent tool in Claude Code. In other hosts, use permitted parallel execution or run the calls in sequence. Collect all `results` arrays — across terms as well as portals — into a single pool for Step 2, keeping each result tagged with its source portal skill (for Step 2 `detail` lookups). A posting that several terms return appears once per term, and Step 2 only skips URLs already in `job_scraper/seen_jobs.json`, so deduplicate the pool by URL before Step 2.
 
 If a CLI tool exits with a non-zero code, log the error message and continue — do not abort the whole search.
 
@@ -91,7 +91,7 @@ Use `WebSearch` for:
 - Any portal whose CLI fails at runtime
 - When bun is unavailable (Step 1a failed)
 
-Use the site-specific query strings from `search-queries.md` directly as WebSearch queries for these portals.
+Use the site-specific query strings from `search-queries.md` directly as WebSearch queries for these portals. If the host has no web search, report the sources you could not search and continue with available portal results. If neither source is available, stop and report that no search was performed.
 
 Tag each fallback result as WebSearch-sourced, keeping the portal tag when the fallback stands in for an installed portal whose CLI failed. Step 4 persists this as the entry's `source`, and Step 5 reports which portals ran on the fallback this run.
 

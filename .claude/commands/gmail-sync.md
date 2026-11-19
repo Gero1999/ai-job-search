@@ -12,7 +12,10 @@ Follow these steps **in order**.
 
 ## Step 0: Prerequisites
 
-Confirm the Gmail MCP tools (`mcp__claude_ai_Gmail__*`) are available. If not, tell the user to connect the Gmail integration (claude.ai Settings → Connectors → Gmail) and stop - do not attempt this via Bash, IMAP, or any other channel.
+Confirm the session exposes authenticated Gmail search and full-message retrieval tools.
+In Claude Code, use the Gmail MCP tools (`mcp__claude_ai_Gmail__*`). In another host, use its Gmail connector and map the operations in Steps 3–4 to the available tool schemas.
+
+If search or full-message retrieval is unavailable, tell the user to connect or re-authenticate Gmail in their host and stop. In Claude Code, point them to claude.ai Settings → Connectors → Gmail. Use only the session's authorized connector for mail access (no Bash or IMAP fallback).
 
 ---
 
@@ -29,7 +32,7 @@ Confirm the Gmail MCP tools (`mcp__claude_ai_Gmail__*`) are available. If not, t
 ## Step 2: Load State
 
 1. Read `job_search_tracker.csv`. If it does not exist, tell the user there is nothing to sync against yet (suggest `/outcome` or `/apply` first) and stop. Do not create it here - `/gmail-sync` never originates new applications, only updates existing ones.
-2. Read `gmail_sync/state.json` (create if missing: `{"last_sync": null, "processed_message_ids": []}`).
+2. Read `gmail_sync/state.json`. If missing, use `{"last_sync": null, "processed_message_ids": []}` in memory until the approved write step.
 3. Build the set of **open applications**: tracker rows whose `status` is not **Final** (per the **Tracker status vocabulary** in `/outcome`). For each, derive its archive folder `documents/applications/<company>_<role>/` by the **Subfolder naming** rule in `documents/README.md` and check whether `outcome.md` exists there. Reuse this exact derived path for any write in Step 7a.
 
    **`drafted` rows stay in this set, and are the reason it is worth searching.** `/apply` writes them but never submits; the user submits by hand and may not think to run `/outcome`. A reply arriving against a row still marked `drafted` is exactly that case, and the row holds the company name the search needs.
@@ -41,7 +44,7 @@ Confirm the Gmail MCP tools (`mcp__claude_ai_Gmail__*`) are available. If not, t
 
 Lookback window: `since <date>` argument if given, else `state.last_sync` if set, else `newer_than:30d`.
 
-1. Call `list_labels` and look for a user label whose name suggests job-search email (e.g. contains "job", "application", "career" case-insensitively). Keep its `name` for the search query if found; the opaque `id` belongs only in a separate API `labelIds` filter, never after the query operator `label:`.
+1. Call `list_labels` (or the connector equivalent) and look for a user label whose name suggests job-search email (e.g. contains "job", "application", "career" case-insensitively). Keep its `name` for the search query if found; the opaque `id` belongs only in a separate API `labelIds` filter, never after the query operator `label:`. Omit the optional label clause if the connector cannot list labels.
 2. Normalize each open application's company name for matching later (lowercase; strip `inc`, `inc.`, `llc`, `ltd`, `a/s`, `corp`, `corporation`, `group`; strip punctuation; collapse whitespace).
 3. Build a Gmail query combining (with `OR` groups via `{}`):
    - `label:"<name>"` if a job-search label was found, using its name rather than its ID (e.g. a label with `id: "Label_42"` and `name: "Job Search"` contributes `label:"Job Search"`, not `label:Label_42`). Quote names with spaces as shown, and pass the query as data to the MCP search tool rather than constructing a shell command.
@@ -52,13 +55,13 @@ Lookback window: `since <date>` argument if given, else `state.last_sync` if set
 
 Example with a `Job Search` label: `newer_than:30d -in:sent -in:drafts (label:"Job Search" OR {"Acme Corp" "BigCo"} OR {from:greenhouse.io from:lever.co from:myworkday.com from:ashbyhq.com})`
 
-4. Call `search_threads` with `view: THREAD_VIEW_MINIMAL`, `pageSize: 50`, paginating via `pageToken` until exhausted or results are clearly outside the relevant window.
+4. Call `search_threads` with `view: THREAD_VIEW_MINIMAL`, `pageSize: 50`, paginating via `pageToken` until exhausted or results are clearly outside the relevant window. If the host exposes message search instead, pass the same Gmail query, paginate through matches, and retain their message IDs (and thread IDs when provided).
 
 ---
 
 ## Step 4: Filter to New Messages
 
-For each returned thread, inspect its messages' IDs against `state.processed_message_ids`. Skip a thread entirely if every message in it is already processed. For threads with unprocessed messages, call `get_thread` with `messageFormat: FULL_CONTENT` to get full bodies - **classification in Step 5 must never be based on the snippet/subject alone**, since snippets truncate the exact phrase that distinguishes "we'd like to schedule a call" from "thanks for applying."
+For each returned thread, inspect its messages' IDs against `state.processed_message_ids`. Skip a thread entirely if every message in it is already processed. For threads with unprocessed messages, call `get_thread` with `messageFormat: FULL_CONTENT` to get full bodies - **classification in Step 5 must never be based on the snippet/subject alone**, since snippets truncate the exact phrase that distinguishes "we'd like to schedule a call" from "thanks for applying." For a message-based connector, deduplicate by message ID and retrieve each new matching message's full body using its message read operation. If connector access fails or full bodies cannot be retrieved, stop before updating tracker or sync state.
 
 ---
 

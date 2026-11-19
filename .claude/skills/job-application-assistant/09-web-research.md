@@ -1,5 +1,5 @@
 ---
-framework_version: 1.1.7
+framework_version: 1.1.8
 ---
 
 # Web Research and Fetching
@@ -66,7 +66,7 @@ Modern sites embed real copy inside JSON blobs in the markup, so useful text oft
 
 Try these in order and stop at the first that yields real content:
 
-1. **Installed portal CLI `detail` command** if the target URL's domain belongs to a configured job portal in `.agents/skills/*/` (derived from each portal's board hosts in `cli/src` and `url-reference.md`, e.g. `linkedin.com` -> `linkedin-search`):
+1. **Installed portal CLI `detail` command** if the target URL's domain belongs to a configured job portal with both `SKILL.md` and `cli/package.json` in `.agents/skills/*/` (derived from each portal's board hosts in `cli/src` and `url-reference.md`, e.g. `linkedin.com` -> `linkedin-search`):
    ```bash
    bun run .agents/skills/<portal-skill>/cli/src/cli.ts detail '<URL>' --format plain
    ```
